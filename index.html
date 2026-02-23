@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FitFuel AI - Fitness Coach</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { font-family: 'Segoe UI', sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; color: white; }
+        .glass-panel { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; }
+        .gradient-text { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #ef4444 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .ai-gradient { background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f59e0b 100%); }
+        .auth-input { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 16px; color: white; width: 100%; margin-bottom: 12px; }
+        .auth-input:focus { border-color: #fbbf24; outline: none; }
+        .btn-primary { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #0f172a; padding: 14px; border-radius: 12px; font-weight: bold; width: 100%; border: none; cursor: pointer; }
+        .btn-ai { background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); color: white; padding: 14px; border-radius: 12px; font-weight: bold; width: 100%; border: none; cursor: pointer; }
+        .chat-message { animation: slideIn 0.3s ease-out; margin-bottom: 12px; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .typing-indicator span { animation: typing 1.4s infinite; display: inline-block; width: 8px; height: 8px; background: #9ca3af; border-radius: 50%; margin: 0 2px; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+        .hidden { display: none !important; }
+        .section-content { padding: 20px; max-width: 100%; }
+        #auth-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        #main-app { display: none; }
+        .workout-card { background: rgba(255, 255, 255, 0.05); border-radius: 16px; overflow: hidden; margin-bottom: 16px; }
+        .meal-card { background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; }
+        .progress-ring { transform: rotate(-90deg); }
+        .tab-active { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #0f172a; font-weight: bold; }
+        .nav-btn { padding: 8px 16px; border-radius: 20px; background: rgba(255, 255, 255, 0.05); margin: 0 4px; cursor: pointer; }
+        .chat-bubble-user { background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); border-radius: 16px 16px 4px 16px; padding: 12px 16px; max-width: 80%; margin-left: auto; }
+        .chat-bubble-ai { background: rgba(255, 255, 255, 0.1); border-radius: 16px 16px 16px 4px; padding: 12px 16px; max-width: 80%; }
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen">
+        <div style="width: 100%; max-width: 400px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                    <i class="fas fa-bolt" style="font-size: 40px; color: #0f172a;"></i>
+                </div>
+                <h1 style="font-size: 32px; font-weight: bold; margin-bottom: 8px;" class="gradient-text">FitFuel AI</h1>
+                <p style="color: #9ca3af;">Your Personal Fitness Intelligence</p>
+            </div>
+
+            <div style="display: flex; background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 4px; margin-bottom: 24px;">
+                <button onclick="switchAuthTab('login')" id="login-tab" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #0f172a; font-weight: bold; cursor: pointer;">Login</button>
+                <button onclick="switchAuthTab('signup')" id="signup-tab" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: transparent; color: #9ca3af; cursor: pointer;">Sign Up</button>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <input type="email" class="auth-input" placeholder="Email" required>
+                <input type="password" class="auth-input" placeholder="Password" required>
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+
+            <form id="signup-form" class="hidden" onsubmit="handleSignup(event)">
+                <input type="text" class="auth-input" placeholder="Full Name" required>
+                <input type="email" class="auth-input" placeholder="Email" required>
+                <input type="password" class="auth-input" placeholder="Password" required>
+                <select class="auth-input" required>
+                    <option value="" style="background: #1e293b;">Select Fitness Goal</option>
+                    <option value="lose-weight" style="background: #1e293b;">Lose Weight</option>
+                    <option value="build-muscle" style="background: #1e293b;">Build Muscle</option>
+                    <option value="maintain" style="background: #1e293b;">Maintain Fitness</option>
+                </select>
+                <button type="submit" class="btn-primary">Create Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="main-app">
+        <!-- Navigation -->
+        <nav style="position: fixed; top: 0; width: 100%; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); z-index: 50; padding: 12px 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+                <div style="display: flex; align-items: center; cursor: pointer;" onclick="showSection('dashboard')">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                        <i class="fas fa-bolt" style="color: #0f172a; font-size: 20px;"></i>
+                    </div>
+                    <span style="font-size: 24px; font-weight: bold;" class="gradient-text">FitFuel AI</span>
+                </div>
+                
+                <div style="display: flex; align-items: center;">
+                    <button onclick="toggleAIChat()" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); display: flex; align-items: center; justify-content: center; margin-right: 12px; border: none; cursor: pointer;">
+                        <i class="fas fa-robot" style="color: white;"></i>
+                    </button>
+                    <div onclick="showSection('profile')" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; color: #0f172a;" id="user-initials">JD</div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section-content" style="margin-top: 80px;">
+            <div class="glass-panel" style="padding: 20px; margin-bottom: 20px;">
+                <h2 style="font-size: 24px; margin-bottom: 8px;">Welcome back, <span id="user-name">John</span>! 👋</h2>
+                <p style="color: #9ca3af;">You're on a <span style="color: #fbbf24; font-weight: bold;">12-day streak</span>! Keep it up!</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                <div class="glass-panel" style="padding: 16px;">
+                    <p style="color: #9ca3af; font-size: 12px;">Calories Burned</p>
+                    <h3 style="font-size: 28px; font-weight: bold;">2,450</h3>
+                    <p style="color: #22c55e; font-size: 12px;"><i class="fas fa-arrow-up"></i> +12%</p>
+                </div>
+                <div class="glass-panel" style="padding: 16px;">
+                    <p style="color: #9ca3af; font-size: 12px;">Workout Minutes</p>
+                    <h3 style="font-size: 28px; font-weight: bold;">85</h3>
+                    <p style="color: #22c55e; font-size: 12px;"><i class="fas fa-arrow-up"></i> +5%</p>
+                </div>
+                <div class="glass-panel" style="padding: 16px;">
+                    <p style="color: #9ca3af; font-size: 12px;">Protein Intake</p>
+                    <h3 style="font-size: 28px; font-weight: bold;">142g</h3>
+                    <p style="color: #fbbf24; font-size: 12px;">On track</p>
+                </div>
+                <div class="glass-panel" style="padding: 16px;">
+                    <p style="color: #9ca3af; font-size: 12px;">AI Insights</p>
+                    <h3 style="font-size: 28px; font-weight: bold;">3</h3>
+                    <p style="color: #a855f7; font-size: 12px;">New tips</p>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="padding: 20px; margin-bottom: 20px; border: 1px solid rgba(139, 92, 246, 0.3);">
+                <div style="display: flex; align-items: center; margin-bottom: 16px;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                        <i class="fas fa-robot" style="color: white;"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 18px; font-weight: bold;">AI Coach Recommendations</h3>
+                        <p style="color: #9ca3af; font-size: 12px;">Based on your progress</p>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                    <div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 12px; cursor: pointer;" onclick="showSection('workouts')">
+                        <i class="fas fa-dumbbell" style="color: #fbbf24; margin-bottom: 8px;"></i>
+                        <h4 style="font-size: 14px; font-weight: bold;">Try HIIT</h4>
+                        <p style="color: #9ca3af; font-size: 11px;">Optimal for your energy</p>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 12px; cursor: pointer;" onclick="showSection('diet')">
+                        <i class="fas fa-apple-alt" style="color: #22c55e; margin-bottom: 8px;"></i>
+                        <h4 style="font-size: 14px; font-weight: bold;">More Protein</h4>
+                        <p style="color: #9ca3af; font-size: 11px;">Add Greek yogurt</p>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-spa" style="color: #a855f7; margin-bottom: 8px;"></i>
+                        <h4 style="font-size: 14px; font-weight: bold;">Recovery</h4>
+                        <p style="color: #9ca3af; font-size: 11px;">Try yoga today</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2 style="font-size: 20px; font-weight: bold;">Today's Workout</h2>
+                    <span style="padding: 6px 12px; background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-radius: 20px; font-size: 12px; font-weight: bold;">HIIT Cardio</span>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 16px; border-radius: 12px; margin-bottom: 12px; display: flex; align-items: center; cursor: pointer;">
+                    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 16px;">
+                        <i class="fas fa-play" style="color: #0f172a;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h4 style="font-weight: bold;">Jumping Jacks</h4>
+                        <p style="color: #9ca3af; font-size: 12px;">45 seconds • Warm-up</p>
+                    </div>
+                    <div style="width: 32px; height: 32px; border: 2px solid #fbbf24; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">01</div>
+                </div>
+                <button onclick="showSection('workouts')" class="btn-primary">Start Full Workout</button>
+            </div>
+        </section>
+
+        <!-- AI Assistant Section -->
+        <section id="ai-assistant" class="section-content hidden" style="margin-top: 80px; height: calc(100vh - 80px); display: flex; flex-direction: column;">
+            <div class="glass-panel" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                <div style="padding: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center;">
+                    <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f59e0b 100%); display: flex; align-items: center; justify-content: center; margin-right: 16px; position: relative;">
+                        <i class="fas fa-robot" style="color: white; font-size: 20px;"></i>
+                        <div style="position: absolute; inset: 0; border: 2px solid #8b5cf6; border-radius: 50%; animation: pulse 2s infinite;"></div>
+                    </div>
+                    <div>
+                        <h2 style="font-size: 20px; font-weight: bold;">FitFuel AI Coach</h2>
+                        <p style="color: #22c55e; font-size: 12px; display: flex; align-items: center;"><span style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; margin-right: 6px; animation: pulse 1s infinite;"></span>Online and ready</p>
+                    </div>
+                </div>
+
+                <div id="chat-messages" style="flex: 1; overflow-y: auto; padding: 20px;">
+                    <div class="chat-message" style="display: flex; align-items: flex-start;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
+                            <i class="fas fa-robot" style="color: white; font-size: 12px;"></i>
+                        </div>
+                        <div class="chat-bubble-ai">
+                            <p style="font-size: 14px; line-height: 1.5;">Hello! I'm your AI fitness coach. I can help you with:</p>
+                            <ul style="font-size: 13px; margin-top: 8px; padding-left: 16px; color: #d1d5db;">
+                                <li>Personalized workout recommendations</li>
+                                <li>Nutrition advice and meal planning</li>
+                                <li>Form corrections and exercise guidance</li>
+                                <li>Progress tracking and motivation</li>
+                            </ul>
+                            <p style="font-size: 14px; margin-top: 8px; color: #fbbf24;">What would you like to work on today?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 12px 20px; display: flex; gap: 8px; overflow-x: auto;">
+                    <button onclick="sendQuickMessage('Create a workout for today')" style="padding: 8px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; white-space: nowrap; font-size: 12px; color: white; cursor: pointer;"><i class="fas fa-dumbbell" style="color: #fbbf24; margin-right: 6px;"></i>Create workout</button>
+                    <button onclick="sendQuickMessage('Suggest a healthy dinner')" style="padding: 8px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; white-space: nowrap; font-size: 12px; color: white; cursor: pointer;"><i class="fas fa-utensils" style="color: #22c55e; margin-right: 6px;"></i>Meal suggestion</button>
+                    <button onclick="sendQuickMessage('How do I improve my form?')" style="padding: 8px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; white-space: nowrap; font-size: 12px; color: white; cursor: pointer;"><i class="fas fa-question-circle" style="color: #3b82f6; margin-right: 6px;"></i>Form tips</button>
+                </div>
+
+                <div style="padding: 16px 20px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <form onsubmit="handleChatSubmit(event)" style="display: flex; gap: 12px;">
+                        <div style="flex: 1; position: relative;">
+                            <input type="text" id="chat-input" placeholder="Ask your AI coach..." style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 40px 12px 16px; color: white; font-size: 14px;">
+                            <i class="fas fa-microphone" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; cursor: pointer;"></i>
+                        </div>
+                        <button type="submit" style="width: 44px; height: 44px; background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); border: none; border-radius: 12px; color: white; cursor: pointer;"><i class="fas fa-paper-plane"></i></button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Workouts Section -->
+        <section id="workouts" class="section-content hidden" style="margin-top: 80px;">
+            <h2 style="font-size: 28px; font-weight: bold; margin-bottom: 8px;">Workout Library</h2>
+            <p style="color: #9ca3af; margin-bottom: 20px;">AI-curated workouts for your goals</p>
+            
+            <div style="display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto;">
+                <button class="nav-btn tab-active">All</button>
+                <button class="nav-btn" style="color: #9ca3af;">HIIT</button>
+                <button class="nav-btn" style="color: #9ca3af;">Str

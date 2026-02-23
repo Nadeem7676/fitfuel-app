@@ -1,0 +1,17 @@
+{
+  "name": "FitFuel AI - Fitness Coach",
+  "short_name": "FitFuel",
+  "description": "Your personal AI fitness and nutrition coach",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2964/2964514.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
